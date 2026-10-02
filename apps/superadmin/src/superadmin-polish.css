@@ -17,6 +17,12 @@
   --sari-metin: #92400e;
   --login-taban: linear-gradient(145deg, #eef1fa, #f6f7fc 55%, #ffffff);
   --login-tanitim-taban: #f2f3fa;
+  --login-lacivert: #07366d;
+  --login-mavi: #0b6eac;
+  --login-yesil: #00b98c;
+  --login-izgara: rgba(11, 145, 211, 0.06);
+  --login-cam: rgba(255, 255, 255, 0.82);
+  --login-cam-guclu: rgba(255, 255, 255, 0.92);
 }
 
 /* Koyu tema (varsayılan davranış — index.html başlangıç scripti .dark'ı
@@ -39,6 +45,12 @@
   --sari-metin: #fde68a;
   --login-taban: linear-gradient(145deg, #080a11, #0c0f19 55%, #090b13);
   --login-tanitim-taban: #0d1019;
+  --login-lacivert: #8dd9f5;
+  --login-mavi: #4db9ed;
+  --login-yesil: #20d4a6;
+  --login-izgara: rgba(63, 166, 214, 0.055);
+  --login-cam: rgba(5, 29, 44, 0.82);
+  --login-cam-guclu: rgba(5, 24, 37, 0.94);
 }
 
 body {
@@ -170,6 +182,130 @@ body {
 .super-login-kart .totp-kurulum { padding: 14px; border-radius: 12px; }
 .super-login-kart .totp-kurulum code { border-radius: 8px; }
 
+/* Landing sayfasıyla ortak MasanPOS giriş dili. Giriş akışına dokunmadan
+   logo, renk, tipografi ve cam yüzeyler marka sistemiyle eşleştirilir. */
+.super-login {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background:
+    linear-gradient(var(--login-izgara) 1px, transparent 1px),
+    linear-gradient(90deg, var(--login-izgara) 1px, transparent 1px),
+    radial-gradient(720px 520px at 12% 8%, color-mix(in srgb, var(--login-mavi) 14%, transparent), transparent 68%),
+    radial-gradient(760px 560px at 92% 90%, color-mix(in srgb, var(--login-yesil) 16%, transparent), transparent 68%),
+    var(--login-taban);
+  background-size: 40px 40px, 40px 40px, auto, auto, auto;
+}
+.super-login-isik--bir { background: color-mix(in srgb, var(--login-mavi) 32%, transparent); }
+.super-login-isik--iki { background: color-mix(in srgb, var(--login-yesil) 30%, transparent); }
+.super-login > section.super-login-kabuk {
+  border-color: color-mix(in srgb, var(--login-mavi) 18%, transparent);
+  background: var(--login-cam);
+  box-shadow: 0 32px 90px rgba(3, 32, 54, 0.24), inset 0 1px rgba(255, 255, 255, 0.2);
+}
+.dark .super-login > section.super-login-kabuk { box-shadow: 0 38px 110px rgba(0, 0, 0, 0.48), inset 0 1px rgba(141, 217, 245, 0.08); }
+.super-login-tanitim {
+  border-right-color: color-mix(in srgb, var(--login-mavi) 14%, transparent);
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--login-mavi) 9%, transparent), transparent 42%),
+    radial-gradient(460px 330px at 86% 78%, color-mix(in srgb, var(--login-yesil) 13%, transparent), transparent 70%),
+    color-mix(in srgb, var(--login-cam-guclu) 94%, transparent);
+}
+.super-login-tanitim::after {
+  border-color: color-mix(in srgb, var(--login-yesil) 18%, transparent);
+  box-shadow: 0 0 0 36px color-mix(in srgb, var(--login-yesil) 4%, transparent), 0 0 0 72px color-mix(in srgb, var(--login-mavi) 3%, transparent);
+}
+.super-login-marka { align-items: center; justify-content: space-between; gap: 18px; }
+.super-login-marka .super-login-logo {
+  width: min(212px, 68%);
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+}
+.super-login-logo img { display: block; width: 100%; height: auto; object-fit: contain; }
+.super-login-logo--koyu { display: none !important; }
+.dark .super-login-logo--acik { display: none !important; }
+.dark .super-login-logo--koyu { display: block !important; }
+.super-login-marka > span:last-child {
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--login-yesil) 24%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--login-yesil) 8%, transparent);
+  color: var(--login-yesil);
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
+.super-login-tanitim-metin > small { color: var(--login-mavi); font-size: 12px; }
+.super-login-tanitim-metin h1,
+.super-login-kart > header h2 { font-family: Outfit, Inter, ui-sans-serif, system-ui, sans-serif; }
+.super-login-tanitim-metin h1 em {
+  background: linear-gradient(100deg, var(--login-mavi), var(--login-yesil));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.super-login-tanitim-metin p { font-size: 15px; line-height: 1.7; }
+.super-login-guvenlik-listesi b { font-size: 14px; }
+.super-login-guvenlik-listesi small { font-size: 12px; line-height: 1.45; }
+.super-login-guvenlik-listesi li > i {
+  width: 32px;
+  height: 32px;
+  border-color: color-mix(in srgb, var(--login-yesil) 28%, transparent);
+  background: color-mix(in srgb, var(--login-yesil) 10%, transparent);
+  color: var(--login-yesil);
+  font-size: 14px;
+}
+.super-login-tanitim > footer { font-size: 12px; }
+.super-login-tanitim > footer i { background: var(--login-yesil); box-shadow: 0 0 12px color-mix(in srgb, var(--login-yesil) 72%, transparent); }
+.super-login-kart { background: color-mix(in srgb, var(--login-cam-guclu) 84%, transparent); }
+.super-login-kart > header .super-login-adim {
+  border-color: color-mix(in srgb, var(--login-mavi) 24%, transparent);
+  background: color-mix(in srgb, var(--login-mavi) 9%, transparent);
+  color: var(--login-mavi);
+  font-size: 12px;
+}
+.super-login-kart > header h2 { font-size: 30px; }
+.super-login-kart > header p { font-size: 14px; }
+.super-login-guvenlik-notu {
+  border-color: color-mix(in srgb, var(--login-yesil) 20%, transparent);
+  background: color-mix(in srgb, var(--login-yesil) 7%, transparent);
+}
+.super-login-guvenlik-notu > i {
+  background: color-mix(in srgb, var(--login-yesil) 13%, transparent);
+  color: var(--login-yesil);
+}
+.super-login-guvenlik-notu b { font-size: 13px; }
+.super-login-guvenlik-notu small { font-size: 12px; line-height: 1.4; }
+.super-login-kart form label > span { font-size: 13px; }
+.super-login-kart form input { height: 52px; font-size: 15px; }
+.super-login-kart form input:focus {
+  border-color: color-mix(in srgb, var(--login-mavi) 72%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--login-mavi) 12%, transparent);
+}
+.super-login-kart form > .super-login-birincil {
+  height: 52px;
+  background: linear-gradient(110deg, #0b6eac, #00b98c);
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 12px 30px rgba(0, 135, 145, .24);
+}
+.dark .super-login-kart form > .super-login-birincil { background: linear-gradient(110deg, #0b6eac, #00b98c); }
+.super-login-kart form > .super-login-birincil:not(:disabled):hover { box-shadow: 0 16px 36px rgba(0, 135, 145, .32); }
+.super-login-kart form > .super-login-ikincil { font-size: 13px; }
+.super-login-kart > footer { font-size: 12px; }
+.super-login-kart .uyari { font-size: 13px; }
+.super-login-kart .totp-kurulum {
+  border-color: color-mix(in srgb, var(--login-mavi) 24%, transparent);
+  background: color-mix(in srgb, var(--login-mavi) 7%, transparent);
+}
+.super-login-kart .totp-kurulum b,
+.super-login-kart .totp-kurulum code,
+.super-login-kart .totp-kurulum a { font-size: 13px; }
+.super-login-kart .totp-kurulum p { font-size: 12px; }
+.super-login-kart .totp-kurulum code,
+.super-login-kart .totp-kurulum a { color: var(--login-mavi); }
+
 /* Platform kabuğu */
 .platform { min-height: 100vh; background: radial-gradient(700px 430px at 88% 0%, rgba(255, 107, 0, .08), transparent 64%), var(--bg); }
 .platform > aside.platform-sidebar { width: 272px; border-right: 1px solid color-mix(in srgb, var(--text) 8%, transparent); background: color-mix(in srgb, var(--sidebar) 96%, transparent); box-shadow: 18px 0 50px rgba(0,0,0,.12); backdrop-filter: blur(24px); }
@@ -240,8 +376,8 @@ body {
   .super-login { padding: 14px; place-items: center; overflow-y: auto; }
   .super-login > section.super-login-kabuk { min-height: 0; grid-template-columns: 1fr; border-radius: 22px; }
   .super-login-tanitim { min-height: 210px; padding: 28px 26px 24px; border-right: 0; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
-  .super-login-marka { flex-direction: row; align-items: center; justify-content: flex-start; }
-  .super-login-marka .super-login-logo { width: 52px; height: 52px; }
+  .super-login-marka { flex-direction: row; align-items: center; justify-content: space-between; }
+  .super-login-marka .super-login-logo { width: min(190px, 64%); height: auto; }
   .super-login-tanitim-metin { margin-top: 30px; }
   .super-login-tanitim-metin h1 { margin: 8px 0; font-size: 29px; }
   .super-login-tanitim-metin p, .super-login-guvenlik-listesi, .super-login-tanitim > footer { display: none; }
@@ -272,6 +408,7 @@ body {
   .super-login-tanitim { min-height: 185px; padding: 22px 21px 18px; }
   .super-login-tanitim-metin { margin-top: 20px; }
   .super-login-tanitim-metin h1 { font-size: 26px; }
+  .super-login-marka .super-login-logo { width: min(172px, 62%); }
   .super-login-kart { padding: 27px 21px 22px; }
   .super-login-guvenlik-notu { display: none; }
   .super-login-kart form { padding-top: 22px; }

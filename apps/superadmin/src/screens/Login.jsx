@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { superGiris, superIkiFaktor, superToken } from "../lib/superApi";
 import { Hata } from "../components/Ui";
-import PlatformAmblemi from "../components/PlatformAmblemi";
 
 function GozIkonu({ kapali }) {
   return kapali ? (
@@ -12,6 +11,7 @@ function GozIkonu({ kapali }) {
 }
 
 export default function Login({ onGiris }) {
+  const varlikTabani = import.meta.env.BASE_URL;
   const [form, setForm] = useState({ email: "", sifre: "", kod: "" });
   const [ikiFaktor, setIkiFaktor] = useState(null);
   const [hata, setHata] = useState("");
@@ -48,7 +48,10 @@ export default function Login({ onGiris }) {
       <section className="super-login-kabuk">
         <aside className="super-login-tanitim">
           <div className="super-login-marka">
-            <PlatformAmblemi className="super-login-logo" />
+            <span className="super-login-logo" aria-label="MasanPOS">
+              <img className="super-login-logo--acik" src={`${varlikTabani}gorseller/masanpos-logo.webp`} alt="MasanPOS" />
+              <img className="super-login-logo--koyu" src={`${varlikTabani}gorseller/masanpos-logo-dark.webp`} alt="MasanPOS" />
+            </span>
             <span>SUPER ADMIN</span>
           </div>
           <div className="super-login-tanitim-metin">
@@ -108,7 +111,7 @@ export default function Login({ onGiris }) {
               <>
                 <label>
                   <span>E-posta adresi</span>
-                  <input type="email" autoComplete="username" required maxLength="254" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="yonetici@platform.com" />
+                  <input type="email" autoComplete="username" required maxLength="254" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="yonetici@masanpos.com" />
                 </label>
                 <label>
                   <span>Şifre</span>
