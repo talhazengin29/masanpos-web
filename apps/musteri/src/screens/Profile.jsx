@@ -186,7 +186,7 @@ export default function Profile() {
           <IconLogout className="cikis-ikon" />
           {t("profile.logout")}
         </button>
-        {yardimAcik && <div className="destek-perde" onClick={() => setYardimAcik(false)}><section className="destek-modal" onClick={(e) => e.stopPropagation()}><span>{t("profile.supportBrand")}</span><h3>{t("profile.supportTitle")}</h3><p>{t("profile.supportText")}</p><p className="destek-not">{t("profile.supportHours")}</p><a href="mailto:destek@burgerplus.com">destek@burgerplus.com</a><button onClick={() => setYardimAcik(false)}>{t("common.close")}</button></section></div>}
+        {yardimAcik && <div className="destek-perde" onClick={() => setYardimAcik(false)}><section className="destek-modal" onClick={(e) => e.stopPropagation()}><span>{t("profile.supportBrand")}</span><h3>{t("profile.supportTitle")}</h3><p>{t("profile.supportText")}</p><p className="destek-not">{t("profile.supportHours")}</p><a href="mailto:info@masanpos.com">info@masanpos.com</a><button onClick={() => setYardimAcik(false)}>{t("common.close")}</button></section></div>}
         {ikiFaktorModal && (
           <div className="destek-perde" onClick={() => ikiFaktorAdim !== "kurtarma" && setIkiFaktorModal(false)}>
             <section className="destek-modal iki-faktor-modal" onClick={(e) => e.stopPropagation()}>

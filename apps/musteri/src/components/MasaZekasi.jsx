@@ -32,7 +32,7 @@ export function MasaZekasiKart({ masaNo, onAc }) {
     >
       <span className="masa-zekasi-kart__ikon" aria-hidden="true"><IconUsers /></span>
       <span className="masa-zekasi-kart__metin">
-        <small>{masaNo ? `MASA ${masaNo} İÇİN` : "MENÜLE MASA ZEKÂSI"}</small>
+        <small>{masaNo ? `MASA ${masaNo} İÇİN` : "MASANPOS MASA ZEKÂSI"}</small>
         <strong>Masaya ne söyleyelim?</strong>
         <span>Bütçenize ve tercihlerinize göre masaya özel plan oluşturalım.</span>
       </span>
@@ -151,7 +151,7 @@ export default function MasaZekasi({ acik, masaNo, masaTokeni, kullanici, urunle
       {acik && <motion.div className="mz-perde" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => { if (e.target === e.currentTarget) onKapat(); }}>
         <motion.section ref={panelRef} tabIndex="-1" role="dialog" aria-modal="true" aria-labelledby="mz-baslik" className="mz-panel" initial={{ opacity: 0, y: 42, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30 }}>
           <header className="mz-header">
-            <div><small>MENÜLE MASA ZEKÂSI</small><h2 id="mz-baslik">Masaya özel sipariş planı</h2></div>
+            <div><small>MASANPOS MASA ZEKÂSI</small><h2 id="mz-baslik">Masaya özel sipariş planı</h2></div>
             <button type="button" className="mz-kapat" onClick={onKapat} aria-label="Kapat">×</button>
           </header>
           <div className="mz-ilerleme" aria-label={`3 adımın ${adim}. adımı`}><span className={adim >= 1 ? "aktif" : ""} /><span className={adim >= 2 ? "aktif" : ""} /><span className={adim >= 3 ? "aktif" : ""} /></div>
