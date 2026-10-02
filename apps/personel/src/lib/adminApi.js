@@ -289,6 +289,14 @@ export async function gorselYukle(dosya) {
   return adminIstek("/gorseller", { method: "POST", headers: { "Content-Type": dosya.type }, body: dosya });
 }
 
+const MENU_AKTARIM_GORSELLERI = new Set(["image/png", "image/jpeg", "image/webp", "application/pdf"]);
+export async function menuGorseliniAnalizEt(dosya) {
+  if (!dosya || !MENU_AKTARIM_GORSELLERI.has(dosya.type)) throw new Error("Menü dosyası PNG, JPG/JPEG, WebP veya PDF formatında olmalıdır.");
+  const sinir = dosya.type === "application/pdf" ? 8 : 5;
+  if (dosya.size > sinir * 1024 * 1024) throw new Error(`Menü ${dosya.type === "application/pdf" ? "PDF'i" : "fotoğrafı"} en fazla ${sinir} MB olabilir.`);
+  return adminIstek("/menu-aktarim/analiz", { method: "POST", headers: { "Content-Type": dosya.type }, body: dosya });
+}
+
 const DESTEKLENEN_GIDER_BELGELERI = new Set(["image/png", "image/jpeg", "image/webp"]);
 export async function giderBelgesiYukle(dosya) {
   if (!dosya || !DESTEKLENEN_GIDER_BELGELERI.has(dosya.type)) throw new Error("Fiş veya fatura PNG, JPG/JPEG ya da WebP formatında olmalıdır.");

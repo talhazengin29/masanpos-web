@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { adminIstek, gorselYukle, jsonGonder, temaKaydet } from "../lib/adminApi";
+import { adminIstek, gorselYukle, jsonGonder, menuGorseliniAnalizEt, temaKaydet } from "../lib/adminApi";
 import { socket } from "../lib/socket";
 import { yuzdeliToplamiHesapla } from "../lib/yuzde";
 import { useIsletmeNavigate } from "../hooks/useIsletmeNavigate";
@@ -190,6 +190,7 @@ export default function Admin({ onCikis, temaKontrolu }) {
   const [hata, setHata] = useState("");
   const [bildirim, setBildirim] = useState("");
   const [urunForm, setUrunForm] = useState(null);
+  const [menuAktarim, setMenuAktarim] = useState(null);
   const [urunArama, setUrunArama] = useState("");
   const [urunKategoriFiltre, setUrunKategoriFiltre] = useState("tumu");
   const [urunDurumFiltre, setUrunDurumFiltre] = useState("tumu");
@@ -336,6 +337,75 @@ export default function Admin({ onCikis, temaKontrolu }) {
     try { await fn(); setBildirim(mesaj); await verileriYukle(); return true; }
     catch (err) { setHata(err.message); return false; }
     finally { setIslemDurumu(""); }
+  };
+
+  const menuAktariminiKapat = () => {
+    if (menuAktarim?.onizleme) URL.revokeObjectURL(menuAktarim.onizleme);
+    setMenuAktarim(null);
+  };
+  const menuAktarimDosyasiSec = (dosya) => {
+    if (!dosya) return;
+    if (!["image/png", "image/jpeg", "image/webp", "application/pdf"].includes(dosya.type)) return setHata("Menü dosyası PNG, JPG/JPEG, WebP veya PDF formatında olmalıdır.");
+    const sinir = dosya.type === "application/pdf" ? 8 : 5;
+    if (dosya.size > sinir * 1024 * 1024) return setHata(`Menü ${dosya.type === "application/pdf" ? "PDF'i" : "fotoğrafı"} en fazla ${sinir} MB olabilir.`);
+    setHata("");
+    setMenuAktarim((onceki) => {
+      if (onceki?.onizleme) URL.revokeObjectURL(onceki.onizleme);
+      return { ...onceki, dosya, onizleme: URL.createObjectURL(dosya), taslak: null };
+    });
+  };
+  const menuAnaliziniBaslat = async () => {
+    if (!menuAktarim?.dosya) return setHata("Önce okunacak menü fotoğrafını seçmelisin.");
+    setHata("");
+    setMenuAktarim((onceki) => ({ ...onceki, analizEdiliyor: true }));
+    try {
+      const { taslak } = await menuGorseliniAnalizEt(menuAktarim.dosya);
+      setMenuAktarim((onceki) => ({ ...onceki, taslak, analizEdiliyor: false }));
+    } catch (err) {
+      setHata(err.message);
+      setMenuAktarim((onceki) => ({ ...onceki, analizEdiliyor: false }));
+    }
+  };
+  const menuKategoriGuncelle = (kategoriIndex, ad) => setMenuAktarim((onceki) => ({
+    ...onceki,
+    taslak: { ...onceki.taslak, kategoriler: onceki.taslak.kategoriler.map((kategori, index) => index === kategoriIndex ? { ...kategori, ad } : kategori) },
+  }));
+  const menuUrunGuncelle = (kategoriIndex, urunIndex, alan, deger) => setMenuAktarim((onceki) => ({
+    ...onceki,
+    taslak: {
+      ...onceki.taslak,
+      kategoriler: onceki.taslak.kategoriler.map((kategori, index) => index === kategoriIndex ? {
+        ...kategori,
+        urunler: kategori.urunler.map((urun, sira) => sira === urunIndex ? { ...urun, [alan]: deger } : urun),
+      } : kategori),
+    },
+  }));
+  const menuTaslaginiKaydet = async () => {
+    const urunler = (menuAktarim?.taslak?.kategoriler || []).flatMap((kategori) =>
+      kategori.urunler.filter((urun) => urun.secili).map((urun) => ({
+        ad: String(urun.ad || "").trim(),
+        kategori: String(kategori.ad || "").trim(),
+        aciklama: String(urun.aciklama || "").trim(),
+        fiyat: Number(urun.fiyat),
+      }))
+    );
+    if (!urunler.length) return setHata("Kaydetmek için en az bir ürün seçmelisin.");
+    if (urunler.some((urun) => urun.ad.length < 2 || urun.kategori.length < 2 || !Number.isFinite(urun.fiyat) || urun.fiyat < 0)) {
+      return setHata("Seçili ürünlerin ad, kategori ve fiyat alanlarını kontrol et.");
+    }
+    setHata("");
+    setIslemDurumu("Menü taslakları kaydediliyor…");
+    try {
+      const { sonuc } = await adminIstek("/menu-aktarim/onayla", jsonGonder("POST", { urunler }));
+      const atlanan = Number(sonuc?.atlananlar?.length || 0);
+      setBildirim(`${sonuc?.eklenenler?.length || 0} ürün pasif taslak olarak eklendi${atlanan ? `, ${atlanan} mevcut ürün atlandı` : ""}.`);
+      menuAktariminiKapat();
+      await verileriYukle();
+    } catch (err) {
+      setHata(err.message);
+    } finally {
+      setIslemDurumu("");
+    }
   };
 
   const sikayetAlaniniGuncelle = (id, alan, deger) => setSikayetler((onceki) => onceki.map((sikayet) => sikayet.id === id ? { ...sikayet, [alan]: deger } : sikayet));
@@ -836,7 +906,7 @@ export default function Admin({ onCikis, temaKontrolu }) {
             </>}
 
             {bolum === "urunler" && <>
-              <BolumBaslik baslik="Menü kataloğu" aciklama="Ürünleri tek tek yönetin veya mevcut ürünleri bir araya getirerek menü oluşturun." buton="+ Yeni ürün" onClick={() => setUrunForm(yeniUrunFormu(kategoriler[0]?.ad))} ikincilButon="+ Ürünlerden menü oluştur" ikincilOnClick={() => setUrunForm(yeniMenuFormu(kategoriler))} />
+              <BolumBaslik baslik="Menü kataloğu" aciklama="Ürünleri tek tek yönetin veya menü fotoğrafından düzenlenebilir taslaklar oluşturun." buton="+ Yeni ürün" onClick={() => setUrunForm(yeniUrunFormu(kategoriler[0]?.ad))} ikincilButon="Ürünlerden menü oluştur" ikincilOnClick={() => setUrunForm(yeniMenuFormu(kategoriler))} ucunculButon="Fotoğraftan aktar" ucunculOnClick={() => setMenuAktarim({ dosya: null, onizleme: "", taslak: null, analizEdiliyor: false })} ucunculIkon="scan" />
               <section className="kategori-yonetim-karti">
                 <header><div><span>UYGULAMA MENÜSÜ</span><h3>Kategoriler</h3><p>Buradaki sıralama ve görseller müşteri uygulamasına anında yansır.</p></div><button type="button" onClick={() => setKategoriForm({ ...BOS_KATEGORI, sira: (kategoriler.at(-1)?.sira || 0) + 10 })}>+ Kategori ekle</button></header>
                 <div className="kategori-yonetim-listesi">
@@ -1138,6 +1208,47 @@ export default function Admin({ onCikis, temaKontrolu }) {
 
       {islemDurumu && <IslemKatmani metin={islemDurumu} />}
 
+      {menuAktarim && (
+        <Modal baslik="Menüyü fotoğraftan aktar" aciklama="Kategori, ürün adı, açıklama ve fiyatları çıkarır; kontrol etmeden hiçbir ürünü yayınlamaz." sinif="admin-modal--menu-aktarim" kapat={menuAktariminiKapat}>
+          {!menuAktarim.taslak ? <div className="menu-aktarim-yukleme">
+            <section className={`menu-aktarim-secici ${menuAktarim.onizleme ? "dolu" : ""}`}>
+              {menuAktarim.onizleme && menuAktarim.dosya?.type !== "application/pdf" ? <img src={menuAktarim.onizleme} alt="Seçilen menü önizlemesi" /> : <span><AdminIcon name="scan" size={30} /></span>}
+              <div><b>{menuAktarim.dosya?.name || "Menünün fotoğrafını çek, galeriden veya PDF olarak seç"}</b><p>Metinlerin net, sayfanın düz ve fiyatların kadraj içinde olması sonucu iyileştirir.</p></div>
+              <div className="menu-aktarim-dosya-islemleri"><label><input type="file" accept="image/png,image/jpeg,image/webp" capture="environment" onChange={(e) => { const dosya = e.target.files?.[0]; e.target.value = ""; menuAktarimDosyasiSec(dosya); }} />Fotoğraf seç</label><label className="ikincil"><input type="file" accept="application/pdf" onChange={(e) => { const dosya = e.target.files?.[0]; e.target.value = ""; menuAktarimDosyasiSec(dosya); }} />PDF seç</label></div>
+            </section>
+            <div className="menu-aktarim-guvence"><AdminIcon name="shield" /><span><b>Önce taslak, sonra yayın</b><small>Analiz sonucu düzenleme ekranına gelir. Kaydedilen ürünler pasif kalır; görsel ve detaylarını tamamladıktan sonra tek tek yayınlarsın.</small></span></div>
+            <div className="menu-aktarim-alt"><button type="button" onClick={menuAktariminiKapat}>Vazgeç</button><button type="button" className="primary" disabled={!menuAktarim.dosya || menuAktarim.analizEdiliyor} onClick={menuAnaliziniBaslat}>{menuAktarim.analizEdiliyor ? "Menü okunuyor…" : "Menüyü analiz et"}</button></div>
+          </div> : <div className="menu-aktarim-inceleme">
+            <header className="menu-aktarim-ozet">
+              {menuAktarim.onizleme && menuAktarim.dosya?.type !== "application/pdf" ? <img src={menuAktarim.onizleme} alt="Menü" /> : <span className="menu-aktarim-pdf">PDF</span>}
+              <div><small>ANALİZ TAMAMLANDI</small><b>{menuAktarim.taslak.urunSayisi} ürün · {menuAktarim.taslak.kategoriler.length} kategori</b><p>Yanlış okunan alanları düzelt, istemediğin satırların seçimini kaldır.</p></div>
+              <button type="button" onClick={() => setMenuAktarim((onceki) => ({ ...onceki, taslak: null }))}>Başka görsel</button>
+            </header>
+            {(menuAktarim.taslak.uyarilar?.length > 0 || menuAktarim.taslak.siniraUlasti) && <div className="menu-aktarim-uyarilar">
+              {menuAktarim.taslak.siniraUlasti && <p>İlk 40 ürün gösteriliyor. Kalan sayfaları ayrı fotoğraf olarak aktarabilirsin.</p>}
+              {menuAktarim.taslak.uyarilar.map((uyari, index) => <p key={`${uyari}-${index}`}>{uyari}</p>)}
+            </div>}
+            <div className="menu-aktarim-kategoriler">
+              {menuAktarim.taslak.kategoriler.map((kategori, kategoriIndex) => <section className="menu-aktarim-kategori" key={`${kategoriIndex}-${kategori.ad}`}>
+                <header><label><span>Kategori</span><input maxLength="60" value={kategori.ad} onChange={(e) => menuKategoriGuncelle(kategoriIndex, e.target.value)} /></label><GuvenRozeti guven={kategori.guven} /></header>
+                <div className="menu-aktarim-urunler">
+                  {kategori.urunler.map((urun, urunIndex) => <article className={!urun.secili ? "haric" : ""} key={`${urunIndex}-${urun.ad}`}>
+                    <label className="menu-aktarim-secim" title={!['TRY', 'TL', '₺'].includes(urun.paraBirimi) ? "Bu para birimi mevcut TL kataloğuna aktarılamaz." : "Ürünü aktarıma dahil et"}><input type="checkbox" disabled={!['TRY', 'TL', '₺'].includes(urun.paraBirimi)} checked={urun.secili === true} onChange={(e) => menuUrunGuncelle(kategoriIndex, urunIndex, "secili", e.target.checked)} /><span /></label>
+                    <div className="menu-aktarim-urun-alanlari">
+                      <label><span>Ürün adı</span><input maxLength="120" value={urun.ad} disabled={!urun.secili} onChange={(e) => menuUrunGuncelle(kategoriIndex, urunIndex, "ad", e.target.value)} /></label>
+                      <label className="fiyat"><span>Fiyat</span><div><input type="number" min="0" max="1000000" step="0.01" value={urun.fiyat} disabled={!urun.secili} onChange={(e) => menuUrunGuncelle(kategoriIndex, urunIndex, "fiyat", e.target.value)} /><b>{['TRY', 'TL', '₺'].includes(urun.paraBirimi) ? '₺' : urun.paraBirimi}</b></div></label>
+                      <label className="aciklama"><span>Açıklama</span><textarea maxLength="500" value={urun.aciklama || ""} disabled={!urun.secili} onChange={(e) => menuUrunGuncelle(kategoriIndex, urunIndex, "aciklama", e.target.value)} /></label>
+                    </div>
+                    <GuvenRozeti guven={urun.guven} />
+                  </article>)}
+                </div>
+              </section>)}
+            </div>
+            <footer className="menu-aktarim-alt"><span>{menuAktarim.taslak.kategoriler.reduce((toplam, kategori) => toplam + kategori.urunler.filter((urun) => urun.secili).length, 0)} ürün seçili</span><button type="button" onClick={menuAktariminiKapat}>Vazgeç</button><button type="button" className="primary" onClick={menuTaslaginiKaydet}>Pasif taslakları kaydet</button></footer>
+          </div>}
+        </Modal>
+      )}
+
       {urunForm && (
         <Modal baslik={urunForm.id ? "Ürünü düzenle" : "Yeni ürün"} aciklama="Ürün bilgileri, fiyatlandırma ve porsiyon seçenekleri" sinif="admin-modal--urun" kapat={() => setUrunForm(null)}>
           <form className="admin-form urun-duzenleme-form" onSubmit={urunKaydet}>
@@ -1382,7 +1493,12 @@ function MetrikSparkline({ veriler }) {
 }
 function Panel({ baslik, alt, children }) { return <section className="admin-panel"><header><h2>{baslik}</h2><span>{alt}</span></header>{children}</section>; }
 function Bos({ yazi }) { return <div className="admin-bos">{yazi}</div>; }
-function BolumBaslik({ baslik, aciklama, buton, onClick, butonIkon, ikincilButon, ikincilOnClick, ikincilIkon }) { return <div className="admin-bolum-baslik"><div><h2>{baslik}</h2><p>{aciklama}</p></div><span className="admin-bolum-islemler">{ikincilButon && <button type="button" className="ikincil" onClick={ikincilOnClick}>{ikincilIkon && <AdminIcon name={ikincilIkon} />}{ikincilButon}</button>}{buton && <button type="button" onClick={onClick}>{butonIkon && <AdminIcon name={butonIkon} />}{buton}</button>}</span></div>; }
+function GuvenRozeti({ guven }) {
+  const yuzde = Math.round(Number(guven || 0) * 100);
+  const seviye = yuzde >= 85 ? "yuksek" : yuzde >= 65 ? "orta" : "dusuk";
+  return <span className={`menu-aktarim-guven ${seviye}`} title="AI okuma güveni">%{yuzde}</span>;
+}
+function BolumBaslik({ baslik, aciklama, buton, onClick, butonIkon, ikincilButon, ikincilOnClick, ikincilIkon, ucunculButon, ucunculOnClick, ucunculIkon }) { return <div className="admin-bolum-baslik"><div><h2>{baslik}</h2><p>{aciklama}</p></div><span className="admin-bolum-islemler">{ucunculButon && <button type="button" className="ikincil menu-aktarim-dugmesi" onClick={ucunculOnClick}>{ucunculIkon && <AdminIcon name={ucunculIkon} />}{ucunculButon}</button>}{ikincilButon && <button type="button" className="ikincil" onClick={ikincilOnClick}>{ikincilIkon && <AdminIcon name={ikincilIkon} />}{ikincilButon}</button>}{buton && <button type="button" onClick={onClick}>{butonIkon && <AdminIcon name={butonIkon} />}{buton}</button>}</span></div>; }
 
 function KampanyaTaslakAnalizi({ analiz }) {
   const kaynakMetni = analiz.strateji === "oneri_performansi"

@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useMemo, useCallback } 
 import { kampanyaAktifMi, urunKurallariniUygula } from "../lib/katalogKurallari";
 import { socket, socketIsletmesiniAyarla } from "../lib/socket";
 import { sepetAnahtariOlustur } from "../lib/urunSecimleri";
+import { oneriIndirimAyariniDonustur, oneriSepetSatiriniGuncelle, oneriUrunFiyatiniGuncelle } from "../lib/oneriIndirimi";
 import { useIsletme } from "./IsletmeContext";
 import { useDil } from "../dil/DilContext";
 import {
@@ -70,6 +71,11 @@ export function AppProvider({ children }) {
   const [urunler, setUrunler] = useState([]);
   const [menuKategorileri, setMenuKategorileri] = useState([TUMU_KATEGORISI]);
   const [kampanyalar, setKampanyalar] = useState([]);
+  const [oneriIndirimAyari, setOneriIndirimAyari] = useState({ aktif: false, indirimYuzde: 0 });
+  const oneriIndirimAyariniUygula = useCallback((ayar) => {
+    const guncel = oneriIndirimAyariniDonustur(ayar);
+    setOneriIndirimAyari((onceki) => onceki.aktif === guncel.aktif && onceki.indirimYuzde === guncel.indirimYuzde ? onceki : guncel);
+  }, []);
 
   // Katalog işletmeye özeldir ve yalnızca backend kayıtlarından yüklenir.
   useEffect(() => {
@@ -135,17 +141,20 @@ export function AppProvider({ children }) {
       setDamgaKarti(guncel);
       setSadakat((onceki) => ({ ...onceki, burgerDamgaHedef: guncel.hedefAdet, damgaKarti: guncel }));
     };
+    const oneriIndirimAyariGuncellendi = (ayar) => oneriIndirimAyariniUygula(ayar);
     socket.on("urunler-guncellendi", katalogGuncelle);
     socket.on("kategoriler-guncellendi", kategorilerGuncelle);
     socket.on("kampanyalar-guncellendi", kampanyalarGuncelle);
     socket.on("sadakat-ayari-guncellendi", sadakatAyariGuncellendi);
+    socket.on("oneri-indirim-ayari-guncellendi", oneriIndirimAyariGuncellendi);
     return () => {
       socket.off("urunler-guncellendi", katalogGuncelle);
       socket.off("kategoriler-guncellendi", kategorilerGuncelle);
       socket.off("kampanyalar-guncellendi", kampanyalarGuncelle);
       socket.off("sadakat-ayari-guncellendi", sadakatAyariGuncellendi);
+      socket.off("oneri-indirim-ayari-guncellendi", oneriIndirimAyariGuncellendi);
     };
-  }, [isletmeSlug]);
+  }, [isletmeSlug, oneriIndirimAyariniUygula]);
 
   // --- Giriş yapmış kullanıcı (auth) ---
   // null ise misafir/giriş yapılmamış. Doluysa gerçek hesap.
@@ -417,6 +426,25 @@ export function AppProvider({ children }) {
     () => kampanyalar.filter((k) => kampanyaAktifMi(k, kampanyaSaati)),
     [kampanyalar, kampanyaSaati]
   );
+
+  // Yönetici öneri indirimini değiştirdiğinde açık sepetler ve ekrandaki öneriler
+  // yeniden yükleme beklemeden güncel orana geçer. Ödeme yine backend'deki güncel
+  // ayarla doğrulandığı için ekrandaki tutar ile tahsil edilen tutar aynı kalır.
+  useEffect(() => {
+    setOneriler((mevcut) => mevcut.map((urun) => oneriUrunFiyatiniGuncelle(urun, oneriIndirimAyari)));
+    setSepet((mevcut) => {
+      let degisti = false;
+      const guncelSepet = mevcut.map((satir) => {
+        const kampanya = kullanici ? aktifKampanyalar
+          .filter((aday) => aday.gecerliKategoriler?.includes(satir.kategori) && Number(aday.indirimYuzde) > 0)
+          .sort((a, b) => Number(b.indirimYuzde) - Number(a.indirimYuzde))[0] : null;
+        const guncelSatir = oneriSepetSatiriniGuncelle(satir, oneriIndirimAyari, kampanya?.indirimYuzde || 0);
+        if (guncelSatir !== satir) degisti = true;
+        return guncelSatir;
+      });
+      return degisti ? guncelSepet : mevcut;
+    });
+  }, [oneriIndirimAyari, aktifKampanyalar, kullanici]);
   // Ürünün kategorisine uygulanan aktif kampanya varsa indirimli fiyatı döner.
   // Kampanya indirimleri sadece giriş yapmış (üye) kullanıcılar içindir — misafir
   // kampanyayı görebilir ama fiyat indirimi/otomatik uygulama misafire yapılmaz.
@@ -532,10 +560,11 @@ export function AppProvider({ children }) {
     const zamanlayici = setTimeout(() => {
       istekAt(`/api/oneriler?urunler=${encodeURIComponent(urunIdleri.join(","))}`)
         .then((yanit) => yanit.ok ? yanit.json() : Promise.reject())
-        .then(({ urunler: uzakUrunler, oneriReferansi: yeniReferans }) => {
+        .then(({ urunler: uzakUrunler, oneriReferansi: yeniReferans, indirimAyari: uzakIndirimAyari }) => {
           if (!iptalEdildi && Array.isArray(uzakUrunler)) {
             setOneriler(kataloguBirlestir(uzakUrunler, isletmeSlug));
             setOneriReferansi(typeof yeniReferans === "string" ? yeniReferans : null);
+            oneriIndirimAyariniUygula(uzakIndirimAyari);
           }
         })
         .catch(() => { if (!iptalEdildi) { setOneriler([]); setOneriReferansi(null); } });
@@ -544,7 +573,7 @@ export function AppProvider({ children }) {
       iptalEdildi = true;
       clearTimeout(zamanlayici);
     };
-  }, [sepet, isletmeSlug]);
+  }, [sepet, isletmeSlug, oneriIndirimAyariniUygula]);
 
   // --- Ödeme ---
   // Son ödemenin özeti (onay ekranı bunu gösterir)

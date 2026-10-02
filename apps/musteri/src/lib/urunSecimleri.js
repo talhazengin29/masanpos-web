@@ -22,7 +22,7 @@ export function gramajMetni(secimler) {
 export function sepetAnahtariOlustur(urun) {
   return JSON.stringify({
     id: urun.id,
-    oneriIndirimYuzde: Number(urun.oneriIndirimYuzde || 0),
+    oneriFirsati: Number(urun.oneriIndirimYuzde || 0) > 0,
     haricMalzemeler: [...haricMalzemeleriGetir(urun)].sort(),
     secimler: urun.secimler || {},
   });
