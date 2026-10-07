@@ -1,10 +1,10 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useIsletmeNavigate } from "../hooks/useIsletmeNavigate";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "../context/AppContext";
 import { useSuruklenebilir } from "../hooks/useSuruklenebilir";
-import { IconPlus, IconSearch, IconFilter, IconChevron, IconCutlery } from "../components/Icons";
+import { IconPlus, IconSearch, IconFilter } from "../components/Icons";
 import OrtakHeader from "../components/OrtakHeader";
 import MasaZekasi, { MasaZekasiKart } from "../components/MasaZekasi";
 import { siraliKonteyner, siraliOge, asagiAcilma } from "../lib/animasyonlar";
@@ -68,7 +68,7 @@ export default function Home() {
 
   const gorunenDamga = Math.min(burgerDamga, burgerDamgaHedef);
   const kalanDamga = Math.max(burgerDamgaHedef - burgerDamga, 0);
-  const damgaSutunSayisi = Math.min(5, Math.max(1, burgerDamgaHedef));
+  const damgaSutunSayisi = burgerDamgaHedef > 6 ? Math.ceil(burgerDamgaHedef / 2) : Math.max(1, burgerDamgaHedef);
   const sonDamgaSatiriAdedi = burgerDamgaHedef % damgaSutunSayisi || damgaSutunSayisi;
   const sonDamgaSatiriEksik = sonDamgaSatiriAdedi < damgaSutunSayisi;
   const sonDamgaSatiriBaslangici = burgerDamgaHedef - sonDamgaSatiriAdedi;
@@ -78,40 +78,6 @@ export default function Home() {
   const kategoriBasligi = aktifKategori === "Tümü" ? t("home.products") : yerelAlan(aktifKategoriVerisi, "ad", aktifKategori);
   const sloganVurguIndex = metinler.slogan.lastIndexOf(metinler.sloganVurgu);
   const sloganBaslangici = sloganVurguIndex >= 0 ? metinler.slogan.slice(0, sloganVurguIndex).trim() : metinler.slogan;
-
-  const yardimciAlanlar = (
-    <div className="home-yardimci-alanlar">
-      {damgaKarti.aktif && (
-        <details className="damga-kart damga-kart--kompakt">
-          <summary className="damga-ozet">
-            <span className="damga-ozet-metin">
-              <strong>{yerelAlan(damgaKarti, "baslik", damgaKarti.baslik)}</strong>
-              <span>{misafir ? t("home.membersOnly") : t("home.nextReward")}</span>
-            </span>
-            {!misafir && <span className="damga-ozet-sayac"><b>{gorunenDamga}</b>/{burgerDamgaHedef}</span>}
-            <IconChevron className="damga-ozet-ok" aria-hidden="true" />
-          </summary>
-          <div className="damga-icerik">
-            <p className="damga-aciklama">{yerelAlan(damgaKarti, "aciklama", damgaKarti.aciklama)}</p>
-            <div className="damga-noktalar" style={{ "--damga-sutun": damgaSutunSayisi, "--damga-son-kaydirma": (damgaSutunSayisi - sonDamgaSatiriAdedi) / 2 }}>
-              {Array.from({ length: burgerDamgaHedef }, (_, indeks) => {
-                const dolu = !misafir && indeks < gorunenDamga;
-                const siradaki = !misafir && indeks === gorunenDamga;
-                const ortalanmisSonSatir = sonDamgaSatiriEksik && indeks >= sonDamgaSatiriBaslangici;
-                return <span key={indeks} className={`${dolu ? "dolu" : ""} ${siradaki ? "siradaki" : ""} ${ortalanmisSonSatir ? "damga-son-satir" : ""}`}><i>{dolu ? damgaKarti.ikon : indeks + 1}</i><small>{dolu ? t("home.stamp") : indeks + 1 === burgerDamgaHedef ? t("home.gift") : ""}</small></span>;
-              })}
-            </div>
-            {misafir ? (
-              <div className="damga-misafir-not"><span>{t("home.membersOnly")}</span><p>{t("home.stampHint", { category: damgaKarti.kategori })}</p></div>
-            ) : (
-              <div className="damga-alt"><div><small>{t("home.nextReward")}</small><strong>{yerelAlan(damgaKarti, "odulMetni", damgaKarti.odulMetni)}</strong></div><p>{kalanDamga === 0 ? yerelAlan(damgaKarti, "tamamlanmaMetni", damgaKarti.tamamlanmaMetni) : t("home.remaining", { count: kalanDamga, unit: yerelAlan(damgaKarti, "damgaBirimi", damgaKarti.damgaBirimi) })}</p></div>
-            )}
-          </div>
-        </details>
-      )}
-      <MasaZekasiKart masaNo={ozetMasaNo} onAc={() => setMasaZekasiAcik(true)} />
-    </div>
-  );
 
   return (
     <div className="ekran home">
@@ -129,7 +95,42 @@ export default function Home() {
           {sloganVurguIndex >= 0 && <><br /><span className="vurgu">{metinler.sloganVurgu}</span></>}
         </motion.h1>
 
+        {/* Ye Kazan damga kartı */}
+        {damgaKarti.aktif && <motion.section
+          className="damga-kart"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
+        >
+          <div className="damga-ust">
+            <div>
+              <h2 className="damga-baslik">{yerelAlan(damgaKarti, "baslik", damgaKarti.baslik)}</h2>
+              <p className="damga-aciklama">{yerelAlan(damgaKarti, "aciklama", damgaKarti.aciklama)}</p>
+            </div>
+            {!misafir && (
+              <div className="damga-sayac"><strong>{gorunenDamga}</strong><span>/{burgerDamgaHedef}</span><small>{t("home.completed")}</small></div>
+            )}
+          </div>
+
+          <div className="damga-noktalar" style={{ "--damga-sutun": damgaSutunSayisi }}>
+            {Array.from({ length: burgerDamgaHedef }, (_, indeks) => {
+              const dolu = !misafir && indeks < gorunenDamga;
+              const siradaki = !misafir && indeks === gorunenDamga;
+              const ortalanmisSonSatir = sonDamgaSatiriEksik && indeks >= sonDamgaSatiriBaslangici;
+              return <motion.span key={indeks} className={`${dolu ? "dolu" : ""} ${siradaki ? "siradaki" : ""} ${ortalanmisSonSatir ? "damga-son-satir" : ""}`} initial={{ opacity: 0, scale: .7 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: .08 + indeks * .035 }}><i>{dolu ? damgaKarti.ikon : indeks + 1}</i><small>{dolu ? t("home.stamp") : indeks + 1 === burgerDamgaHedef ? t("home.gift") : ""}</small></motion.span>;
+            })}
+          </div>
+
+          {misafir ? (
+            <div className="damga-misafir-not"><span>{t("home.membersOnly")}</span><p>{t("home.stampHint", { category: damgaKarti.kategori })}</p></div>
+          ) : (
+            <div className="damga-alt"><div><small>{t("home.nextReward")}</small><strong>{yerelAlan(damgaKarti, "odulMetni", damgaKarti.odulMetni)}</strong></div><p>{kalanDamga === 0 ? yerelAlan(damgaKarti, "tamamlanmaMetni", damgaKarti.tamamlanmaMetni) : t("home.remaining", { count: kalanDamga, unit: yerelAlan(damgaKarti, "damgaBirimi", damgaKarti.damgaBirimi) })}</p></div>
+          )}
+        </motion.section>}
+
         {/* Kategoriler — yuvarlak görseller, yatay kaydırma */}
+        <MasaZekasiKart masaNo={ozetMasaNo} onAc={() => setMasaZekasiAcik(true)} />
+
         <div className="kategori-satir" ref={chipRef}>
           {kategoriler.map((kategori) => {
             const k = kategori.ad;
@@ -144,11 +145,11 @@ export default function Home() {
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
               <span className="kategori-daire">
-                {kategori.gorsel ? (
+                {kategori.gorsel && (
                   <span className="kategori-gorsel-kirp">
                     <img className="kategori-gorsel" src={kategori.gorsel} alt="" loading="lazy" />
                   </span>
-                ) : <IconCutlery className="kategori-varsayilan-ikon" aria-hidden="true" />}
+                )}
               </span>
               <span className="kategori-ad">{k === "Tümü" ? t("home.products") : yerelAlan(kategori, "ad", k)}</span>
             </motion.button>
@@ -217,7 +218,6 @@ export default function Home() {
           </AnimatePresence>
         </motion.div>
 
-
         {/* Kategoriye göre öne çıkan ilk beş ürün — yatay kaydırılabilir. */}
         {populerUrunler.length > 0 && <div className="bolum-satir">
           <h3 className="bolum-baslik">{aktifKategori === "Tümü" ? metinler.urunBolumBaslik : `${metinler.urunBolumBaslik}: ${kategoriBasligi}`}</h3>
@@ -239,19 +239,12 @@ export default function Home() {
           </motion.div>
         </AnimatePresence>}
 
-        {populerUrunler.length > 0 && yardimciAlanlar}
-
         {digerUrunler.length > 0 && (
           <section className="diger-urunler">
             <div className="bolum-satir diger-urunler-baslik"><h3 className="bolum-baslik">{t("home.allCategory", { category: kategoriBasligi })}</h3><small>{t("home.count", { count: digerUrunler.length })}</small></div>
             <AnimatePresence mode="wait">
               <motion.div className="urun-grid" key={`diger-${aktifKategori}-${siralama}-${arama}`} {...siraliKonteyner} initial="initial" animate="animate">
-                {digerUrunler.map((u, indeks) => (
-                  <Fragment key={u.id}>
-                    <UrunKarti urun={u} indirim={indirimliFiyat(u)} git={git} sepeteEkle={sepeteEkle} />
-                    {populerUrunler.length === 0 && indeks === Math.min(1, digerUrunler.length - 1) && yardimciAlanlar}
-                  </Fragment>
-                ))}
+                {digerUrunler.map((u) => <UrunKarti key={u.id} urun={u} indirim={indirimliFiyat(u)} git={git} sepeteEkle={sepeteEkle} />)}
               </motion.div>
             </AnimatePresence>
           </section>
@@ -260,7 +253,6 @@ export default function Home() {
         {gosterilen.length === 0 && (
           <p className="bos-sonuc">{arama ? t("home.noResult", { query: arama }) : t("home.waitingProducts")}</p>
         )}
-        {gosterilen.length === 0 && yardimciAlanlar}
       </div>
       <MasaZekasi
         acik={masaZekasiAcik}
